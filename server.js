@@ -95,7 +95,7 @@ class VMManager {
           apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
           mkdir -p /var/run/sshd &&
           useradd -m -s /bin/bash devuser &&
-          echo 'devuser:${password}' | chpasswd &&
+          echo "devuser:${password}" | chpasswd &&
           usermod -aG sudo devuser &&
           echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
           sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
