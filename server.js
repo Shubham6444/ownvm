@@ -87,25 +87,36 @@ class VMManager {
             const container = await docker.createContainer({
                 Image: "ubuntu:22.04",
                 name: containerName,
-                Cmd: [
-                    "/bin/bash",
-                    "-c",
-                    `
-          apt-get update && 
-          apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
-          mkdir -p /var/run/sshd &&
-          useradd -m -s /bin/bash devuser &&
-          echo "devuser:${password}" | chpasswd &&
-          usermod -aG sudo devuser &&
-          echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
-          sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
-          sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
-          service ssh start &&
-          service nginx start &&
-          echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p>' > /var/www/html/index.html &&
-          tail -f /dev/null
-        `,
-                ],
+               Cmd: [
+  "/bin/bash",
+  "-c",
+  `
+    apt-get update && 
+    apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
+
+    mkdir -p /var/run/sshd &&
+
+    useradd -m -s /bin/bash devuser &&
+
+    echo "devuser:${password}" | chpasswd &&
+
+    usermod -aG sudo devuser &&
+
+    echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
+
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
+
+    service ssh start &&
+    service nginx start &&
+
+    echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p>' > /var/www/html/index.html &&
+
+    tail -f /dev/null
+  `
+],
+
                 ExposedPorts: {
                     "22/tcp": {},
                     "80/tcp": {},
