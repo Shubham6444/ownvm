@@ -80,10 +80,9 @@ class VMManager {
     }
 
     static async createContainer(userId, password, sshPort, httpPort) {
-        console.log(password)
         const containerName = `vm_${userId}`
 
-        try { const actualPassword = password || "ubuntupass";
+        try {
             // Create container with Ubuntu image
            const container = await docker.createContainer({
   Image: "ubuntu:22.04",
@@ -134,86 +133,10 @@ class VMManager {
   Tty: true,
   OpenStdin: true,
 })
-
-
             await container.start()
-
-            // Wait a moment for the container to initialize
-            await new Promise((resolve) => setTimeout(resolve, 5000))
-
-            // Execute additional commands to ensure everything is set up properly
-            const exec = await container.exec({
-                Cmd: [
-                    "/bin/bash",
-                    "-c",
-                    `
-        # Double-check user creation and password
-        id devuser || (useradd -m -s /bin/bash devuser && echo "devuser:${password}" | chpasswd)
-        usermod -aG sudo devuser
-        
-        # Restart SSH service
-        service ssh restart
-        
-        # Check if SSH is running
-        service ssh status
-        
-        # Test password authentication
-        echo "Password set for devuser"
-      `,
-                ],
-                AttachStdout: true,
-                AttachStderr: true,
-            })
-
-            const stream = await exec.start()
-            console.log("Container setup completed for:", containerName)
-
             return container
         } catch (error) {
             console.error("Container creation error:", error)
-            throw error
-        }
-    }
-
-    static async fixContainerPassword(containerId, password) {
-        try {
-            const container = docker.getContainer(containerId)
-
-            // Execute password reset command
-            const exec = await container.exec({
-                Cmd: [
-                    "/bin/bash",
-                    "-c",
-                    `
-          # Reset devuser password
-          echo "devuser:${password}" | chpasswd
-          
-          # Ensure devuser exists and has proper permissions
-          id devuser || useradd -m -s /bin/bash devuser
-          usermod -aG sudo devuser
-          
-          # Fix SSH configuration
-          sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
-          sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
-          
-          # Restart SSH service
-          service ssh restart
-          
-          # Verify user can authenticate
-          echo "Password reset completed for devuser"
-        `,
-                ],
-                AttachStdout: true,
-                AttachStderr: true,
-            })
-
-            const stream = await exec.start()
-            console.log("Password fix completed for container:", containerId)
-
-            return true
-        } catch (error) {
-            console.error("Password fix error:", error)
             throw error
         }
     }
@@ -470,34 +393,6 @@ app.post("/api/vm-action", requireAuth, async (req, res) => {
     } catch (error) {
         console.error("VM action error:", error)
         res.status(500).json({ error: "Failed to perform VM action: " + error.message })
-    }
-})
-
-app.post("/api/fix-vm-password", requireAuth, async (req, res) => {
-    try {
-        const { newPassword } = req.body
-        const userId = req.session.userId.toString()
-        const vmData = await VMManager.loadVMData()
-        const userVM = vmData[userId]
-
-        if (!userVM) {
-            return res.status(404).json({ error: "VM not found" })
-        }
-
-        if (!newPassword) {
-            return res.status(400).json({ error: "New password is required" })
-        }
-
-        // Fix the password in the container
-        await VMManager.fixContainerPassword(userVM.containerId, newPassword)
-
-        res.json({
-            success: true,
-            message: "Password updated successfully. Try SSH again.",
-        })
-    } catch (error) {
-        console.error("Password fix error:", error)
-        res.status(500).json({ error: "Failed to fix password: " + error.message })
     }
 })
 
