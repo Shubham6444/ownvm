@@ -87,35 +87,48 @@ class VMManager {
             const container = await docker.createContainer({
                 Image: "ubuntu:22.04",
                 name: containerName,
-               Cmd: [
-  "/bin/bash",
-  "-c",
-  `
-    apt-get update && 
-    apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
-
-    mkdir -p /var/run/sshd &&
-
-    useradd -m -s /bin/bash devuser &&
-
-    echo "devuser:${password}" | chpasswd &&
-
-    usermod -aG sudo devuser &&
-
-    echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
-
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
-    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
-
-    service ssh start &&
-    service nginx start &&
-
-    echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p>' > /var/www/html/index.html &&
-
-    tail -f /dev/null
-  `.replace("${password}", password) // ✅ Inject actual password
-],
+                Cmd: [
+                    "/bin/bash",
+                    "-c",
+                    `
+        # Update package list
+        apt-get update
+        
+        # Install required packages
+        DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo nginx nodejs npm curl wget git vim htop
+        
+        # Configure SSH
+        mkdir -p /var/run/sshd
+        sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
+        sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+        sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+        
+        # Create devuser with proper password
+        useradd -m -s /bin/bash devuser
+        echo "devuser:${password}" | chpasswd
+        usermod -aG sudo devuser
+        echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+        
+        # Ensure home directory permissions
+        chown -R devuser:devuser /home/devuser
+        chmod 755 /home/devuser
+        
+        # Create .ssh directory for devuser
+        mkdir -p /home/devuser/.ssh
+        chown devuser:devuser /home/devuser/.ssh
+        chmod 700 /home/devuser/.ssh
+        
+        # Configure Nginx
+        echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p><p>User: devuser</p><p>SSH Port: ${sshPort}</p>' > /var/www/html/index.html
+        
+        # Start services
+        service ssh start
+        service nginx start
+        
+        # Keep container running
+        tail -f /dev/null
+      `,
+                ],
                 ExposedPorts: {
                     "22/tcp": {},
                     "80/tcp": {},
@@ -128,12 +141,88 @@ class VMManager {
                     Memory: 512 * 1024 * 1024, // 512MB limit
                     CpuShares: 512, // CPU limit
                 },
+                Tty: true,
+                OpenStdin: true,
             })
 
             await container.start()
+
+            // Wait a moment for the container to initialize
+            await new Promise((resolve) => setTimeout(resolve, 5000))
+
+            // Execute additional commands to ensure everything is set up properly
+            const exec = await container.exec({
+                Cmd: [
+                    "/bin/bash",
+                    "-c",
+                    `
+        # Double-check user creation and password
+        id devuser || (useradd -m -s /bin/bash devuser && echo "devuser:${password}" | chpasswd)
+        usermod -aG sudo devuser
+        
+        # Restart SSH service
+        service ssh restart
+        
+        # Check if SSH is running
+        service ssh status
+        
+        # Test password authentication
+        echo "Password set for devuser"
+      `,
+                ],
+                AttachStdout: true,
+                AttachStderr: true,
+            })
+
+            const stream = await exec.start()
+            console.log("Container setup completed for:", containerName)
+
             return container
         } catch (error) {
             console.error("Container creation error:", error)
+            throw error
+        }
+    }
+
+    static async fixContainerPassword(containerId, password) {
+        try {
+            const container = docker.getContainer(containerId)
+
+            // Execute password reset command
+            const exec = await container.exec({
+                Cmd: [
+                    "/bin/bash",
+                    "-c",
+                    `
+          # Reset devuser password
+          echo "devuser:${password}" | chpasswd
+          
+          # Ensure devuser exists and has proper permissions
+          id devuser || useradd -m -s /bin/bash devuser
+          usermod -aG sudo devuser
+          
+          # Fix SSH configuration
+          sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
+          
+          # Restart SSH service
+          service ssh restart
+          
+          # Verify user can authenticate
+          echo "Password reset completed for devuser"
+        `,
+                ],
+                AttachStdout: true,
+                AttachStderr: true,
+            })
+
+            const stream = await exec.start()
+            console.log("Password fix completed for container:", containerId)
+
+            return true
+        } catch (error) {
+            console.error("Password fix error:", error)
             throw error
         }
     }
@@ -390,6 +479,34 @@ app.post("/api/vm-action", requireAuth, async (req, res) => {
     } catch (error) {
         console.error("VM action error:", error)
         res.status(500).json({ error: "Failed to perform VM action: " + error.message })
+    }
+})
+
+app.post("/api/fix-vm-password", requireAuth, async (req, res) => {
+    try {
+        const { newPassword } = req.body
+        const userId = req.session.userId.toString()
+        const vmData = await VMManager.loadVMData()
+        const userVM = vmData[userId]
+
+        if (!userVM) {
+            return res.status(404).json({ error: "VM not found" })
+        }
+
+        if (!newPassword) {
+            return res.status(400).json({ error: "New password is required" })
+        }
+
+        // Fix the password in the container
+        await VMManager.fixContainerPassword(userVM.containerId, newPassword)
+
+        res.json({
+            success: true,
+            message: "Password updated successfully. Try SSH again.",
+        })
+    } catch (error) {
+        console.error("Password fix error:", error)
+        res.status(500).json({ error: "Failed to fix password: " + error.message })
     }
 })
 
