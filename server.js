@@ -15,15 +15,15 @@ const execAsync = util.promisify(exec)
 
 // Configuration
 const CONFIG = {
-  PORT: 3000,
-  MONGODB_URL: "mongodb://localhost:27017",
-  DB_NAME: "vm_platform",
-  SSH_PORT_START: 2201,
-  HTTP_PORT_START: 8001,
-  DOMAIN: "yourdomain.com",
-  NGINX_CONFIG_PATH: "/etc/nginx/sites-available",
-  NGINX_ENABLED_PATH: "/etc/nginx/sites-enabled",
-  DATA_FILE: "./data/vm_mappings.json",
+    PORT: 3000,
+    MONGODB_URL: "mongodb+srv://pathshalamath6:8GifF4HGtqxknH6U@cluster0.ryifmx3.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
+    DB_NAME: "vm_platform",
+    SSH_PORT_START: 2201,
+    HTTP_PORT_START: 8001,
+    DOMAIN: "remixorbit.in",
+    NGINX_CONFIG_PATH: "/etc/nginx/sites-available",
+    NGINX_ENABLED_PATH: "/etc/nginx/sites-enabled",
+    DATA_FILE: "./data/vm_mappings.json",
 }
 
 // Middleware
