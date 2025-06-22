@@ -80,54 +80,36 @@ class VMManager {
     }
 
     static async createContainer(userId, password, sshPort, httpPort) {
+        console.log(password)
         const containerName = `vm_${userId}`
 
-        try {
+        try { const actualPassword = password || "ubuntupass";
             // Create container with Ubuntu image
             const container = await docker.createContainer({
                 Image: "ubuntu:22.04",
                 name: containerName,
-                Cmd: [
-                    "/bin/bash",
-                    "-c",
-                    `
-        # Update package list
-        apt-get update
-        
-        # Install required packages
-        DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo nginx nodejs npm curl wget git vim htop
-        
-        # Configure SSH
-        mkdir -p /var/run/sshd
-        sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config
-        sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
-        sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config
-        
-        # Create devuser with proper password
-        useradd -m -s /bin/bash devuser
-        echo "devuser:${password}" | chpasswd
-        usermod -aG sudo devuser
-        echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-        
-        # Ensure home directory permissions
-        chown -R devuser:devuser /home/devuser
-        chmod 755 /home/devuser
-        
-        # Create .ssh directory for devuser
-        mkdir -p /home/devuser/.ssh
-        chown devuser:devuser /home/devuser/.ssh
-        chmod 700 /home/devuser/.ssh
-        
-        # Configure Nginx
-        echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p><p>User: devuser</p><p>SSH Port: ${sshPort}</p>' > /var/www/html/index.html
-        
-        # Start services
-        service ssh start
-        service nginx start
-        
-        # Keep container running
-        tail -f /dev/null
-      `,
+              
+
+Cmd: [
+  "/bin/bash",
+  "-c",
+  `
+    apt-get update && 
+    apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
+    mkdir -p /var/run/sshd &&
+    useradd -m -s /bin/bash devuser &&
+    echo "devuser:REPLACE_PASSWORD_HERE" | chpasswd &&
+    usermod -aG sudo devuser &&
+    echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
+    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
+    service ssh start &&
+    service nginx start &&
+    echo '<h1>Welcome to your VM!</h1><p>Container: vm_${userId}</p>' > /var/www/html/index.html &&
+    tail -f /dev/null
+  `.replace("REPLACE_PASSWORD_HERE", actualPassword)
+
                 ],
                 ExposedPorts: {
                     "22/tcp": {},
