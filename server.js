@@ -85,47 +85,56 @@ class VMManager {
 
         try { const actualPassword = password || "ubuntupass";
             // Create container with Ubuntu image
-            const container = await docker.createContainer({
-                Image: "ubuntu:22.04",
-                name: containerName,
-              
-
-Cmd: [
+           const container = await docker.createContainer({
+  Image: "ubuntu:22.04",
+  name: containerName,
+  Cmd: [
   "/bin/bash",
   "-c",
   `
     apt-get update && 
-    apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
+    DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
+
     mkdir -p /var/run/sshd &&
+
     useradd -m -s /bin/bash devuser &&
-    echo "devuser:REPLACE_PASSWORD_HERE" | chpasswd &&
+    echo "devuser:${actualPassword}" | chpasswd &&
     usermod -aG sudo devuser &&
     echo 'devuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers &&
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config &&
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
-    sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
+
+    sed -i 's/^#\\?PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config &&
+    sed -i 's/^#\\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config &&
+
     service ssh start &&
     service nginx start &&
-    echo '<h1>Welcome to your VM!</h1><p>Container: vm_${userId}</p>' > /var/www/html/index.html &&
-    tail -f /dev/null
-  `.replace("REPLACE_PASSWORD_HERE", actualPassword)
 
-                ],
-                ExposedPorts: {
-                    "22/tcp": {},
-                    "80/tcp": {},
-                },
-                HostConfig: {
-                    PortBindings: {
-                        "22/tcp": [{ HostPort: sshPort.toString() }],
-                        "80/tcp": [{ HostPort: httpPort.toString() }],
-                    },
-                    Memory: 512 * 1024 * 1024, // 512MB limit
-                    CpuShares: 512, // CPU limit
-                },
-                Tty: true,
-                OpenStdin: true,
-            })
+    echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p>' > /var/www/html/index.html &&
+
+    tail -f /dev/null
+  `
+],
+
+  ExposedPorts: {
+    "22/tcp": {},
+    "80/tcp": {},
+  },
+  HostConfig: {
+    Binds: [
+      "/:/host", 
+      "/var/run/docker.sock:/var/run/docker.sock"
+    ],
+    Privileged: true,
+    PortBindings: {
+      "22/tcp": [{ HostPort: sshPort.toString() }],
+      "80/tcp": [{ HostPort: httpPort.toString() }],
+    },
+    Memory: 512 * 1024 * 1024,
+    CpuShares: 512,
+  },
+  Tty: true,
+  OpenStdin: true,
+})
+
 
             await container.start()
 
