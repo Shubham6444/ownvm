@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VM Dashboard - VM Provisioning Platform</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>🖥️ VM Dashboard</h1>
+                <div class="user-info">
+                    <span id="username"></span>
+                    <button onclick="logout()" class="btn btn-secondary">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <!-- No VM State -->
+            <div id="noVMState" class="vm-state">
+                <div class="create-vm-container">
+                    <h2>Create Your VM</h2>
+                    <p>You don't have a VM yet. Create one to get started!</p>
+
+                    <form id="createVMForm" class="create-vm-form">
+                        <div class="form-group">
+                            <label for="vmPassword">VM Password (for SSH access)</label>
+                            <input type="password" id="vmPassword" name="vmPassword" required
+                                placeholder="Enter a secure password">
+                            <small>This will be the password for the 'devuser' account</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="customDomain">Custom Subdomain (optional)</label>
+                            <input type="text" id="customDomain" name="customDomain"
+                                placeholder="e.g., myapp (will become myapp.yourdomain.com)">
+                            <small>Leave empty for auto-generated subdomain</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text">Create VM</span>
+                            <span class="btn-loading" style="display: none;">Creating...</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- VM Exists State -->
+            <div id="hasVMState" class="vm-state" style="display: none;">
+                <div class="vm-info-card">
+                    <div class="vm-header">
+                        <h2>Your VM</h2>
+                        <div class="vm-status">
+                            <span id="vmStatus" class="status-badge">Loading...</span>
+                        </div>
+                    </div>
+
+                    <div class="vm-details">
+                        <div class="detail-group">
+                            <h3>🌐 Web Access</h3>
+                            <div class="detail-item">
+                                <label>Domain:</label>
+                                <span id="vmDomain" class="copyable"></span>
+                                <button onclick="copyToClipboard('vmDomain')" class="btn-copy">📋</button>
+                            </div>
+                        </div>
+
+                        <div class="detail-group">
+                            <h3>🔐 SSH Access</h3>
+                            <div class="detail-item">
+                                <label>Command:</label>
+                                <code id="sshCommand" class="copyable"></code>
+                                <button onclick="copyToClipboard('sshCommand')" class="btn-copy">📋</button>
+                            </div>
+                            <div class="detail-item">
+                                <label>Port:</label>
+                                <span id="sshPort"></span>
+                            </div>
+                        </div>
+
+                        <div class="detail-group">
+                            <h3>📊 VM Information</h3>
+                            <div class="detail-item">
+                                <label>Container:</label>
+                                <span id="containerName"></span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Created:</label>
+                                <span id="createdAt"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="vm-actions">
+                        <button onclick="performVMAction('start')" class="btn btn-success" id="startBtn">
+                            ▶️ Start
+                        </button>
+                        <button onclick="performVMAction('stop')" class="btn btn-warning" id="stopBtn">
+                            ⏹️ Stop
+                        </button>
+                        <button onclick="performVMAction('restart')" class="btn btn-info" id="restartBtn">
+                            🔄 Restart
+                        </button>
+                        <button onclick="performVMAction('remove')" class="btn btn-danger" id="removeBtn">
+                            🗑️ Remove
+                        </button>
+                    </div>
+                </div>
+
+                <div class="vm-instructions">
+                    <h3>📝 Getting Started</h3>
+                    <div class="instruction-grid">
+                        <div class="instruction-card">
+                            <h4>1. SSH Access</h4>
+                            <p>Use the SSH command above to connect to your VM. Username is <code>devuser</code> with
+                                the password you set.</p>
+                        </div>
+                        <div class="instruction-card">
+                            <h4>2. Web Access</h4>
+                            <p>Your VM has Nginx running. Visit your domain to see the default page or deploy your own
+                                content.</p>
+                        </div>
+                        <div class="instruction-card">
+                            <h4>3. Development</h4>
+                            <p>Your VM comes with Node.js, npm, and other development tools pre-installed.</p>
+                        </div>
+                        <div class="instruction-card">
+                            <h4>4. File Management</h4>
+                            <p>Use SCP or SFTP to transfer files:
+                                <code>scp -P [port] file.txt devuser@yourdomain.com:~/</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="dashboard.js"></script>
+</body>
+
+</html>
