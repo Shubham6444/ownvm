@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VM Dashboard - VM Provisioning Platform</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -24,18 +26,18 @@
                 <div class="create-vm-container">
                     <h2>Create Your VM</h2>
                     <p>You don't have a VM yet. Create one to get started!</p>
-                    
+
                     <form id="createVMForm" class="create-vm-form">
                         <div class="form-group">
                             <label for="vmPassword">VM Password (for SSH access)</label>
-                            <input type="password" id="vmPassword" name="vmPassword" required 
-                                   placeholder="Enter a secure password">
+                            <input type="password" id="vmPassword" name="vmPassword" required
+                                placeholder="Enter a secure password">
                             <small>This will be the password for the 'devuser' account</small>
                         </div>
                         <div class="form-group">
                             <label for="customDomain">Custom Subdomain (optional)</label>
-                            <input type="text" id="customDomain" name="customDomain" 
-                                   placeholder="e.g., myapp (will become myapp.yourdomain.com)">
+                            <input type="text" id="customDomain" name="customDomain"
+                                placeholder="e.g., myapp (will become myapp.yourdomain.com)">
                             <small>Leave empty for auto-generated subdomain</small>
                         </div>
                         <button type="submit" class="btn btn-primary">
@@ -102,30 +104,9 @@
                         <button onclick="performVMAction('restart')" class="btn btn-info" id="restartBtn">
                             🔄 Restart
                         </button>
-                        <button onclick="showPasswordReset()" class="btn btn-secondary" id="passwordBtn">
-                            🔑 Reset Password
-                        </button>
                         <button onclick="performVMAction('remove')" class="btn btn-danger" id="removeBtn">
                             🗑️ Remove
                         </button>
-                    </div>
-
-                    <!-- Password Reset Modal -->
-                    <div id="passwordModal" class="modal" style="display: none;">
-                        <div class="modal-content">
-                            <h3>Reset VM Password</h3>
-                            <form id="passwordResetForm">
-                                <div class="form-group">
-                                    <label for="newPassword">New Password</label>
-                                    <input type="password" id="newPassword" name="newPassword" required 
-                                           placeholder="Enter new password for devuser">
-                                </div>
-                                <div class="modal-actions">
-                                    <button type="submit" class="btn btn-primary">Update Password</button>
-                                    <button type="button" onclick="hidePasswordReset()" class="btn btn-secondary">Cancel</button>
-                                </div>
-                            </form>
-                        </div>
                     </div>
                 </div>
 
@@ -134,11 +115,13 @@
                     <div class="instruction-grid">
                         <div class="instruction-card">
                             <h4>1. SSH Access</h4>
-                            <p>Use the SSH command above to connect to your VM. Username is <code>devuser</code> with the password you set.</p>
+                            <p>Use the SSH command above to connect to your VM. Username is <code>devuser</code> with
+                                the password you set.</p>
                         </div>
                         <div class="instruction-card">
                             <h4>2. Web Access</h4>
-                            <p>Your VM has Nginx running. Visit your domain to see the default page or deploy your own content.</p>
+                            <p>Your VM has Nginx running. Visit your domain to see the default page or deploy your own
+                                content.</p>
                         </div>
                         <div class="instruction-card">
                             <h4>3. Development</h4>
@@ -146,7 +129,8 @@
                         </div>
                         <div class="instruction-card">
                             <h4>4. File Management</h4>
-                            <p>Use SCP or SFTP to transfer files: <code>scp -P [port] file.txt devuser@yourdomain.com:~/</code></p>
+                            <p>Use SCP or SFTP to transfer files:
+                                <code>scp -P [port] file.txt devuser@yourdomain.com:~/</code></p>
                         </div>
                     </div>
                 </div>
@@ -158,4 +142,5 @@
 
     <script src="dashboard.js"></script>
 </body>
+
 </html>

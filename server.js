@@ -83,14 +83,16 @@ class VMManager {
         const containerName = `vm_${userId}`
 
         try {
+            const actualPassword = password?.trim() || "ubuntupass";
+
             // Create container with Ubuntu image
-           const container = await docker.createContainer({
-  Image: "ubuntu:22.04",
-  name: containerName,
-  Cmd: [
-  "/bin/bash",
-  "-c",
-  `
+            const container = await docker.createContainer({
+                Image: "ubuntu:22.04",
+                name: containerName,
+                Cmd: [
+                    "/bin/bash",
+                    "-c",
+                    `
     apt-get update && 
     DEBIAN_FRONTEND=noninteractive apt-get install -y openssh-server sudo nginx nodejs npm systemd &&
 
@@ -111,28 +113,28 @@ class VMManager {
 
     tail -f /dev/null
   `
-],
+                ],
 
-  ExposedPorts: {
-    "22/tcp": {},
-    "80/tcp": {},
-  },
-  HostConfig: {
-    Binds: [
-      "/:/host", 
-      "/var/run/docker.sock:/var/run/docker.sock"
-    ],
-    Privileged: true,
-    PortBindings: {
-      "22/tcp": [{ HostPort: sshPort.toString() }],
-      "80/tcp": [{ HostPort: httpPort.toString() }],
-    },
-    Memory: 512 * 1024 * 1024,
-    CpuShares: 512,
-  },
-  Tty: true,
-  OpenStdin: true,
-})
+                ExposedPorts: {
+                    "22/tcp": {},
+                    "80/tcp": {},
+                },
+                HostConfig: {
+                    Binds: [
+                        "/:/host",
+                        "/var/run/docker.sock:/var/run/docker.sock"
+                    ],
+                    Privileged: true,
+                    PortBindings: {
+                        "22/tcp": [{ HostPort: sshPort.toString() }],
+                        "80/tcp": [{ HostPort: httpPort.toString() }],
+                    },
+                    Memory: 512 * 1024 * 1024,
+                    CpuShares: 512,
+                },
+                Tty: true,
+                OpenStdin: true,
+            })
             await container.start()
             return container
         } catch (error) {
