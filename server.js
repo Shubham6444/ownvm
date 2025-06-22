@@ -114,9 +114,8 @@ class VMManager {
     echo '<h1>Welcome to your VM!</h1><p>Container: ${containerName}</p>' > /var/www/html/index.html &&
 
     tail -f /dev/null
-  `
+  `.replace("${password}", password) // ✅ Inject actual password
 ],
-
                 ExposedPorts: {
                     "22/tcp": {},
                     "80/tcp": {},
